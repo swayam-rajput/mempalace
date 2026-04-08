@@ -30,6 +30,12 @@ import os
 import sys
 import argparse
 from pathlib import Path
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
+console = Console()
 
 from .config import MempalaceConfig
 
@@ -163,7 +169,7 @@ def cmd_repair(args):
     palace_path = os.path.expanduser(args.palace) if args.palace else MempalaceConfig().palace_path
 
     if not os.path.isdir(palace_path):
-        print(f"\n  No palace found at {palace_path}")
+        print(f"[red]No palace found at {palace_path}[/red]")
         return
 
     print(f"\n{'=' * 55}")
@@ -178,8 +184,8 @@ def cmd_repair(args):
         total = col.count()
         print(f"  Drawers found: {total}")
     except Exception as e:
-        print(f"  Error reading palace: {e}")
-        print("  Cannot recover — palace may need to be re-mined from source files.")
+        console.print(f"[red]Error reading palace: {e}[/red]")
+        console.print("  Cannot recover — palace may need to be re-mined from source files.")
         return
 
     if total == 0:
@@ -252,8 +258,8 @@ def cmd_compress(args):
         client = chromadb.PersistentClient(path=palace_path)
         col = client.get_collection("mempalace_drawers")
     except Exception:
-        print(f"\n  No palace found at {palace_path}")
-        print("  Run: mempalace init <dir> then mempalace mine <dir>")
+        console.print(f"[red] No palace found at {palace_path}[/red]")
+        console.print("[red] Run: mempalace init <dir> then mempalace mine <dir> [/red]")
         sys.exit(1)
 
     # Query drawers in batches to avoid SQLite variable limit (~999)
@@ -269,7 +275,7 @@ def cmd_compress(args):
             batch = col.get(**kwargs)
         except Exception as e:
             if not docs:
-                print(f"\n  Error reading drawers: {e}")
+                console.print(f"[red] \n  Error reading drawers: {e}[/red]")
                 sys.exit(1)
             break
         batch_docs = batch.get("documents", [])
@@ -335,7 +341,7 @@ def cmd_compress(args):
                 f"  Stored {len(compressed_entries)} compressed drawers in 'mempalace_compressed' collection."
             )
         except Exception as e:
-            print(f"  Error storing compressed drawers: {e}")
+            console.print(f"  Error storing compressed drawers: {e}")
             sys.exit(1)
 
     # Summary
@@ -460,11 +466,25 @@ def main():
     # status
     sub.add_parser("status", help="Show what's been filed")
 
-    args = parser.parse_args()
+    # 1. Detect if we should enter interactive mode
+    # We go interactive if no subcommand is found in arguments
+    subcommands = ["init", "mine", "search", "compress", "wake-up", "split", "status", "repair"]
+    has_subcommand = any(arg in subcommands for arg in sys.argv[1:])
+    is_help = "-h" in sys.argv or "--help" in sys.argv
 
-    if not args.command:
-        parser.print_help()
-        return
+    if not has_subcommand and not is_help:
+        try:
+            from .interactive import show_interactive_menu
+            interactive_argv = show_interactive_menu()
+            args = parser.parse_args(interactive_argv)
+        except (KeyboardInterrupt, SystemExit, EOFError):
+            sys.exit(0)
+        except Exception as e:
+            console.print(f"[red]Interactive mode error: {e}[/red]")
+            parser.print_help() 
+            return
+    else:
+        args = parser.parse_args()
 
     dispatch = {
         "init": cmd_init,
@@ -476,7 +496,11 @@ def main():
         "repair": cmd_repair,
         "status": cmd_status,
     }
-    dispatch[args.command](args)
+    
+    if args.command in dispatch:
+        dispatch[args.command](args)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":

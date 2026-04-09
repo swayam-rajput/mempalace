@@ -475,7 +475,7 @@ def main():
     if not has_subcommand and not is_help:
         try:
             from .interactive import show_interactive_menu
-            interactive_argv = show_interactive_menu()
+            interactive_argv = show_interactive_menu() 
             args = parser.parse_args(interactive_argv)
         except (KeyboardInterrupt, SystemExit, EOFError):
             sys.exit(0)

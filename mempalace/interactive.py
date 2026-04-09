@@ -55,7 +55,6 @@ def show_interactive_menu():
 
     # Pre-fill example parameters
     example = EXAMPLES.get(selected_cmd, "")
-    
     console.print(f"\n[bold yellow]Parameters for {selected_cmd}[/bold yellow]")
     if example:
         console.print(f"[dim]Suggestion: {example}[/dim]")
@@ -64,7 +63,7 @@ def show_interactive_menu():
         message=f"mempalace {selected_cmd}",
         default=example,
         qmark='>',
-        amark='>',               
+        amark='>',
     ).execute()
 
     console.print("\n[bold green] Executing command...[/bold green]\n")
@@ -78,4 +77,3 @@ def show_interactive_menu():
 
 if __name__ == "__main__":
     show_interactive_menu()
- 

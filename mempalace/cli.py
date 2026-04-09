@@ -31,13 +31,10 @@ import sys
 import argparse
 from pathlib import Path
 from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from .config import MempalaceConfig
 
 console = Console()
 
-from .config import MempalaceConfig
 
 
 def cmd_init(args):
@@ -475,13 +472,13 @@ def main():
     if not has_subcommand and not is_help:
         try:
             from .interactive import show_interactive_menu
-            interactive_argv = show_interactive_menu() 
+            interactive_argv = show_interactive_menu()
             args = parser.parse_args(interactive_argv)
         except (KeyboardInterrupt, SystemExit, EOFError):
             sys.exit(0)
         except Exception as e:
             console.print(f"[red]Interactive mode error: {e}[/red]")
-            parser.print_help() 
+            parser.print_help()
             return
     else:
         args = parser.parse_args()
@@ -496,7 +493,6 @@ def main():
         "repair": cmd_repair,
         "status": cmd_status,
     }
-    
     if args.command in dispatch:
         dispatch[args.command](args)
     else:
